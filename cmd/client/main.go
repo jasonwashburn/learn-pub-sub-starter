@@ -39,7 +39,7 @@ func main() {
 	}
 
 	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan)
+	signal.Notify(sigChan, os.Interrupt)
 
 	<-sigChan
 	fmt.Println("Signal received, shutting down...")
