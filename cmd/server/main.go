@@ -29,6 +29,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	_, _, err = pubsub.DeclareAndBind(conn, routing.ExchangePerilDirect, routing.GameLogSlug, "game_logs.*", pubsub.Durable)
+	if err != nil {
+		fmt.Printf("Failed to declare and bind game logs queue: %s\n", err)
+		os.Exit(1)
+	}
+
 	gamelogic.PrintServerHelp()
 outerloop:
 	for {
