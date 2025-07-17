@@ -38,6 +38,42 @@ func main() {
 		os.Exit(1)
 	}
 
+	gameState := gamelogic.NewGameState(username)
+
+outerloop:
+	for {
+		userWords := gamelogic.GetInput()
+		if len(userWords) == 0 {
+			continue
+		}
+
+		switch userWords[0] {
+		case "spawn":
+			err := gameState.CommandSpawn(userWords)
+			if err != nil {
+				fmt.Printf("Error processing spawn command: %s\n", err)
+			}
+		case "move":
+			_, err := gameState.CommandMove(userWords)
+			if err != nil {
+				fmt.Printf("Error processing move command: %s\n", err)
+			}
+			fmt.Println("Move successful!")
+		case "status":
+			gameState.CommandStatus()
+		case "help":
+			gamelogic.PrintClientHelp()
+		case "spam":
+			fmt.Println("Spamming not allowed yet!")
+		case "quit":
+			gamelogic.PrintQuit()
+			break outerloop
+		default:
+			fmt.Println("I don't understand the command")
+			continue
+		}
+	}
+
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt)
 
