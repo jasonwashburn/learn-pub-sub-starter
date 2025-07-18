@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/signal"
 
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/gamelogic"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/pubsub"
@@ -11,6 +10,13 @@ import (
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
+
+func handlerPause(gs *gamelogic.GameState) func(routing.PlayingState) {
+	return func(ps routing.PlayingState) {
+		defer fmt.Print("> ")
+		gs.HandlePause(ps)
+	}
+}
 
 func main() {
 	fmt.Println("Starting Peril client...")
@@ -39,6 +45,11 @@ func main() {
 	}
 
 	gameState := gamelogic.NewGameState(username)
+	err = pubsub.SubscribeJSON(conn, routing.ExchangePerilDirect, fmt.Sprintf("pause.%s", username), routing.PauseKey, pubsub.Transient, handlerPause(gameState))
+	if err != nil {
+		fmt.Printf("Failed to subscribe to pause messages: %s\n", err)
+		os.Exit(1)
+	}
 
 outerloop:
 	for {
@@ -57,6 +68,7 @@ outerloop:
 			_, err := gameState.CommandMove(userWords)
 			if err != nil {
 				fmt.Printf("Error processing move command: %s\n", err)
+				continue
 			}
 			fmt.Println("Move successful!")
 		case "status":
@@ -73,12 +85,6 @@ outerloop:
 			continue
 		}
 	}
-
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt)
-
-	<-sigChan
-	fmt.Println("Signal received, shutting down...")
 	conn.Close()
 	os.Exit(0)
 }

@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/signal"
 
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/gamelogic"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/pubsub"
@@ -71,11 +70,6 @@ outerloop:
 		}
 	}
 
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt)
-
-	<-sigChan
-	fmt.Println("Signal received, shutting down...")
 	conn.Close()
 	os.Exit(0)
 }
