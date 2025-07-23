@@ -105,12 +105,6 @@ func main() {
 	}
 
 	pauseQueueName := fmt.Sprintf("%s.%s", routing.PauseKey, username)
-	_, _, err = pubsub.DeclareAndBind(conn, routing.ExchangePerilDirect, pauseQueueName, routing.PauseKey, pubsub.Transient)
-	if err != nil {
-		fmt.Printf("Failed to declare and bind queue: %s\n", err)
-		os.Exit(1)
-	}
-
 	gameState := gamelogic.NewGameState(username)
 	err = pubsub.SubscribeJSON(conn, routing.ExchangePerilDirect, pauseQueueName, routing.PauseKey, pubsub.Transient, handlerPause(gameState))
 	if err != nil {
@@ -120,12 +114,6 @@ func main() {
 
 	armyMovesQueueName := fmt.Sprintf("%s.%s", routing.ArmyMovesPrefix, username)
 	armyMovesRoutingKey := fmt.Sprintf("%s.*", routing.ArmyMovesPrefix)
-	_, _, err = pubsub.DeclareAndBind(conn, routing.ExchangePerilTopic, armyMovesQueueName, armyMovesRoutingKey, pubsub.Transient)
-	if err != nil {
-		fmt.Printf("Failed to declare and bind queue: %s\n", err)
-		os.Exit(1)
-	}
-
 	err = pubsub.SubscribeJSON(conn, routing.ExchangePerilTopic, armyMovesQueueName, armyMovesRoutingKey, pubsub.Transient, handlerMove(gameState, rabbitChan))
 	if err != nil {
 		fmt.Printf("Failed to subscribe to army move messages: %s\n", err)
@@ -134,16 +122,12 @@ func main() {
 
 	warQueueName := "war"
 	warRoutingKey := fmt.Sprintf("%s.*", routing.WarRecognitionsPrefix)
-	_, _, err = pubsub.DeclareAndBind(conn, routing.ExchangePerilTopic, warQueueName, warRoutingKey, pubsub.Durable)
-	if err != nil {
-		fmt.Printf("Failed to declare and bind queue: %s\n", err)
-		os.Exit(1)
-	}
 	err = pubsub.SubscribeJSON(conn, routing.ExchangePerilTopic, warQueueName, warRoutingKey, pubsub.Durable, handlerWar(gameState, rabbitChan))
 	if err != nil {
 		fmt.Printf("Failed to subscribe to war recognition messages: %s\n", err)
 		os.Exit(1)
 	}
+
 outerloop:
 	for {
 		userWords := gamelogic.GetInput()
