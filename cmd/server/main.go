@@ -10,6 +10,17 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
+func handlerGameLog() func(routing.GameLog) pubsub.AckType {
+	return func(gamelog routing.GameLog) pubsub.AckType {
+		defer fmt.Print("> ")
+		err := gamelogic.WriteLog(gamelog)
+		if err != nil {
+			fmt.Printf("Failed to write game log: %s\n", err)
+		}
+		return pubsub.Ack
+	}
+}
+
 func main() {
 	fmt.Println("Starting Peril server...")
 	connectionString := "amqp://guest:guest@localhost:5672/"
@@ -33,6 +44,8 @@ func main() {
 		fmt.Printf("Failed to declare and bind game logs queue: %s\n", err)
 		os.Exit(1)
 	}
+
+	pubsub.SubscribeGob(conn, routing.ExchangePerilTopic, routing.GameLogSlug, "game_logs.*", pubsub.Durable, handlerGameLog())
 
 	gamelogic.PrintServerHelp()
 outerloop:

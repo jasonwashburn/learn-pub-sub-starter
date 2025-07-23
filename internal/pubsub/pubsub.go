@@ -149,3 +149,57 @@ func SubscribeJSON[T any](
 	}()
 	return nil
 }
+
+func SubscribeGob[T any](
+	conn *amqp.Connection,
+	exchange,
+	queueName,
+	key string,
+	queueType SimpleQueueType, // an enum to represent "durable" or "transient"
+	handler func(T) AckType, // handler function that processes the message and returns an AckType
+) error {
+	ch, queue, err := DeclareAndBind(conn, exchange, queueName, key, queueType)
+	if err != nil {
+		fmt.Printf("Error declaring and binding queue: %s\n", err)
+		return err
+	}
+
+	deliverCh, err := ch.Consume(queue.Name, "", false, false, false, false, nil)
+	if err != nil {
+		fmt.Printf("Error starting consumer: %s\n", err)
+		return err
+	}
+
+	go func() {
+		for d := range deliverCh {
+			var body T
+			enc := gob.NewDecoder(bytes.NewBuffer(d.Body))
+			if err := enc.Decode(&body); err != nil {
+				fmt.Printf("Error unmarshalling message: %s\n", err)
+				continue
+			}
+			ackType := handler(body)
+			switch ackType {
+			case Ack:
+				fmt.Printf("Acknowledging message: %s\n", d.Body)
+				err = d.Ack(false)
+				if err != nil {
+					fmt.Printf("Error acknowledging message: %s\n", err)
+				}
+			case NackRequeue:
+				fmt.Printf("Nacking and requeuing message: %s\n", d.Body)
+				err = d.Nack(false, true)
+				if err != nil {
+					fmt.Printf("Error nacking and requeuing message: %s\n", err)
+				}
+			case NackDiscard:
+				fmt.Printf("Nacking and discarding message: %s\n", d.Body)
+				err = d.Nack(false, false)
+				if err != nil {
+					fmt.Printf("Error nacking and discarding message: %s\n", err)
+				}
+			}
+		}
+	}()
+	return nil
+}
