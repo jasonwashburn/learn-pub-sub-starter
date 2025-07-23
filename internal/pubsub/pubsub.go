@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/routing"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -57,8 +58,9 @@ func PublishGob[T any](ch *amqp.Channel, exchange, key string, val T) error {
 
 func PublishGameLog(ch *amqp.Channel, attacker string, msg string) error {
 	gl := routing.GameLog{
-		Message:  msg,
-		Username: attacker,
+		CurrentTime: time.Now(),
+		Message:     msg,
+		Username:    attacker,
 	}
 	err := PublishGob(ch, routing.ExchangePerilTopic, fmt.Sprintf("%s.%s", routing.GameLogSlug, attacker), gl)
 	return err
@@ -181,19 +183,19 @@ func SubscribeGob[T any](
 			ackType := handler(body)
 			switch ackType {
 			case Ack:
-				fmt.Printf("Acknowledging message: %s\n", d.Body)
+				fmt.Printf("Acknowledging message: %v\n", body)
 				err = d.Ack(false)
 				if err != nil {
 					fmt.Printf("Error acknowledging message: %s\n", err)
 				}
 			case NackRequeue:
-				fmt.Printf("Nacking and requeuing message: %s\n", d.Body)
+				fmt.Printf("Nacking and requeuing message: %v\n", body)
 				err = d.Nack(false, true)
 				if err != nil {
 					fmt.Printf("Error nacking and requeuing message: %s\n", err)
 				}
 			case NackDiscard:
-				fmt.Printf("Nacking and discarding message: %s\n", d.Body)
+				fmt.Printf("Nacking and discarding message: %v\n", body)
 				err = d.Nack(false, false)
 				if err != nil {
 					fmt.Printf("Error nacking and discarding message: %s\n", err)
