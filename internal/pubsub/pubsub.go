@@ -113,6 +113,11 @@ func SubscribeJSON[T any](
 		return err
 	}
 
+	err = ch.Qos(10, 0, false)
+	if err != nil {
+		fmt.Printf("Error setting QoS: %s\n", err)
+	}
+
 	deliverCh, err := ch.Consume(queue.Name, "", false, false, false, false, nil)
 	if err != nil {
 		fmt.Printf("Error starting consumer: %s\n", err)
@@ -166,6 +171,10 @@ func SubscribeGob[T any](
 		return err
 	}
 
+	err = ch.Qos(10, 0, false)
+	if err != nil {
+		fmt.Printf("Error setting QoS: %s\n", err)
+	}
 	deliverCh, err := ch.Consume(queue.Name, "", false, false, false, false, nil)
 	if err != nil {
 		fmt.Printf("Error starting consumer: %s\n", err)

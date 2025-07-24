@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/gamelogic"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/pubsub"
@@ -158,7 +159,19 @@ outerloop:
 		case "help":
 			gamelogic.PrintClientHelp()
 		case "spam":
-			fmt.Println("Spamming not allowed yet!")
+			if len(userWords) != 2 {
+				fmt.Println("Usage: spam <number of times>")
+				continue
+			}
+			n, err := strconv.Atoi(userWords[1])
+			if err != nil {
+				fmt.Println("Number of times must be a valid integer")
+				continue
+			}
+			for range n {
+				msg := gamelogic.GetMaliciousLog()
+				pubsub.PublishGameLog(rabbitChan, username, msg)
+			}
 		case "quit":
 			gamelogic.PrintQuit()
 			break outerloop
